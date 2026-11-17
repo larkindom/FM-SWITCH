@@ -70,6 +70,8 @@ final class DownloadModeController {
 
     private(set) var job: DownloadModeJob?
     private(set) var phase = Phase.idle
+    /// The write that was under way, so a failure can say what recovering it takes.
+    private(set) var attemptedWrite: FlashPlanSummary?
     /// Whether an FM-1 is in download mode now.
     private(set) var isInDownloadMode = false
     /// Whether the app is asking the FM-1 to restart into download mode.
@@ -151,6 +153,7 @@ final class DownloadModeController {
     func start(_ job: DownloadModeJob) async {
         guard !phase.isRunning else { return }
         self.job = job
+        attemptedWrite = nil
         phase = .reading(0)
         await closeService()
         let service: any FlashService
@@ -193,7 +196,8 @@ final class DownloadModeController {
 
     /// Writes the planned change, checking every part of it.
     func confirm() async {
-        guard case .confirming(_, let saved) = phase, let service else { return }
+        guard case .confirming(let plan, let saved) = phase, let service else { return }
+        attemptedWrite = plan
         phase = .writing(0, saved: saved)
         do {
             try await withProgress(
@@ -227,6 +231,7 @@ final class DownloadModeController {
     func finish() async {
         guard !phase.isRunning else { return }
         job = nil
+        attemptedWrite = nil
         phase = .idle
         await closeService()
     }

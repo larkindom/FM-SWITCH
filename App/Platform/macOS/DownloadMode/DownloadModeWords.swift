@@ -148,7 +148,34 @@ enum DownloadModeWords {
 
     static let writeFailed = "The write didn't finish"
     static let stopped = "It stopped"
-    static let putBackBackup = """
+    /// What to do after a write that didn't finish, by what it was changing. Without a plan, it
+    /// assumes nothing about the bootloader.
+    static func afterFailedWrite(_ plan: FlashPlanSummary?) -> String {
+        guard let plan else { return putBackBackup }
+        if plan.writesBootArea {
+            return """
+                The write was changing the boot area, where the bootloader is, so the FM-1 may not \
+                start. If it's still in download mode, keep it plugged in and switched on, and put back \
+                the backup saved before writing. If it has switched off or won't enter download mode, \
+                don't keep trying: recovering it could need a USB_KEY dongle.
+                """
+        } else if plan.keepsMBootloader {
+            return """
+                The bootloader wasn't touched. If your FM-1 is still in download mode, put back the \
+                backup saved before writing. If it isn't, switch it off, hold REC while switching it on \
+                to reach download mode again, then put the backup back.
+                """
+        } else {
+            return """
+                The bootloader wasn't touched, but with M-VAVE's bootloader download mode is only \
+                reached through the firmware. While your FM-1 is still in download mode, put back the \
+                backup saved before writing. If it has switched off and the firmware won't start, \
+                recovering it could need a USB_KEY dongle. Installing m-bootloader first avoids that.
+                """
+        }
+    }
+
+    private static let putBackBackup = """
         Keep your FM-1 plugged in and switched on: it's still in download mode. Put back the backup \
         saved before writing, then try again.
         """

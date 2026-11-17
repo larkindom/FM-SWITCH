@@ -37,6 +37,34 @@
             #expect(try Data(contentsOf: saved.file).count == 0x10_0000)
         }
 
+        /// What recovering takes depends on whether the failed write was changing the boot area.
+        @Test func saysWhatRecoveringTakesByWhatTheWriteWasChanging() async throws {
+            await tools.enterDownloadMode()
+            await tools.start(.mBootloader)
+            guard case .confirming(let plan, _) = tools.phase else {
+                Issue.record("Expected a plan, got \(tools.phase)")
+                return
+            }
+            #expect(tools.attemptedWrite == nil)
+            await tools.confirm()
+            #expect(tools.attemptedWrite == plan)
+
+            let bootArea = DownloadModeWords.afterFailedWrite(plan)
+            #expect(bootArea.contains("boot area"))
+            #expect(bootArea.contains("USB_KEY"))
+
+            var keeping = plan
+            keeping.writesBootArea = false
+            keeping.keepsMBootloader = true
+            #expect(DownloadModeWords.afterFailedWrite(keeping).contains("REC"))
+
+            var mVave = keeping
+            mVave.keepsMBootloader = false
+            #expect(DownloadModeWords.afterFailedWrite(mVave).contains("Installing m-bootloader first"))
+
+            #expect(DownloadModeWords.afterFailedWrite(nil).contains("still in download mode"))
+        }
+
         /// Installs m-bootloader, then puts the backup made first back, which takes M-VAVE's
         /// bootloader back too.
         @Test func installsMBootloaderThenRestoresTheBackupFromBefore() async throws {

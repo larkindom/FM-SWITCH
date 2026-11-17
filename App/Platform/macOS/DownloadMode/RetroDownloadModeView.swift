@@ -140,7 +140,7 @@ struct RetroDownloadModeView: View {
         {
             MonoText(failure.message, size: 14)
             if didntFinish, saved != nil {
-                MonoText(DownloadModeWords.putBackBackup, size: 14)
+                MonoText(DownloadModeWords.afterFailedWrite(tools.attemptedWrite), size: 14)
                 Button(DownloadModeWords.restoreBackup.uppercased()) {
                     Task { await tools.restoreAfterFailure() }
                 }
