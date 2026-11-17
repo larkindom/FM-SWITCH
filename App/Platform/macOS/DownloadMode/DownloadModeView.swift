@@ -222,7 +222,7 @@ struct DownloadModeView: View {
             .foregroundStyle(Palette.warningInk)
             Text(failure.message)
             if failure.kind == .writeFailed, saved != nil {
-                Text(DownloadModeWords.putBackBackup)
+                Text(DownloadModeWords.afterFailedWrite(tools.attemptedWrite))
                     .font(.callout.weight(.semibold))
                 Button(DownloadModeWords.restoreBackup) { Task { await tools.restoreAfterFailure() } }
                     .buttonStyle(.prominent(Palette.accent))
